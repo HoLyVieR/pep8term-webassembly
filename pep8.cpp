@@ -93,9 +93,19 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <string>
+#include <cstring>
 #include <stdio.h>
+#include <emscripten/emscripten.h>
+#include <emscripten/bind.h>
+#include <sstream>
 
 using namespace std;
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+#else
+#define EXTERN
+#endif
 
 const int MEMORY_SIZE        = 65536;
 const int TOP_OF_MEMORY      = 65535;
@@ -184,8 +194,10 @@ int nValue;                 // n values
 
 // Input/Output
 ifstream trapFile;
-ifstream chariInputStream;
-ofstream charoOutputStream;
+
+std::stringstream chariInputStream;
+std::stringstream charoOutputStream;
+
 bool bKeyboardInput;       // for program application, used by CHARI
 bool bScreenOutput;        // for program application, used by CHARO
 bool bBufferIsEmpty;
@@ -2021,8 +2033,8 @@ void LoaderCommand()
     {
         cout << "Data input switched back to keyboard." << endl;
         bKeyboardInput = true;
-        chariInputStream.close();
-        chariInputStream.clear();
+        //chariInputStream.close();
+        //chariInputStream.clear();
     }
     cout << "Enter object file name (do not include .pepo): ";
     cin.getline(FileName, FILE_NAME_LENGTH);
@@ -2033,8 +2045,8 @@ void LoaderCommand()
     FileName[iTemp++] = 'p';
     FileName[iTemp++] = 'o';
     FileName[iTemp] = '\0';
-    chariInputStream.open(FileName);
-    if (chariInputStream.is_open())
+    //chariInputStream.open(FileName);
+    if (/*chariInputStream.is_open()*/true)
     {
         cout << "Object file is " << FileName << endl;
         bMachineReset = true;
@@ -2051,8 +2063,8 @@ void LoaderCommand()
     {
         cout << "Could not open object file " << FileName << endl;
     }
-    chariInputStream.close();
-    chariInputStream.clear();
+    //chariInputStream.close();
+    //chariInputStream.clear();
 }
 
 void ExecuteCommand()
@@ -2298,8 +2310,8 @@ void InputCommand()
         }
     }
     while (ch != 'K' && ch != 'F' && ch != ' ');
-    chariInputStream.close();
-    chariInputStream.clear();
+    //chariInputStream.close();
+    //chariInputStream.clear();
     if (ch == 'K')
     {
         bKeyboardInput = true;
@@ -2310,8 +2322,8 @@ void InputCommand()
         cout << "Enter input data file name: ";
         cin.getline(cInFileName, FILE_NAME_LENGTH);
         cInFileName[cin.gcount() - 1] = '\0';
-        chariInputStream.open(cInFileName);
-        if (chariInputStream.is_open())
+        //chariInputStream.open(cInFileName);
+        if (true/*chariInputStream.is_open()*/)
         {
             bKeyboardInput = false;
             cout << "Input data file is " << cInFileName << endl;
@@ -2320,8 +2332,8 @@ void InputCommand()
         {
             bKeyboardInput = true;
             cout << "Could not open input data file " << cInFileName << endl;
-            chariInputStream.close();
-            chariInputStream.clear();
+            //chariInputStream.close();
+            //chariInputStream.clear();
         }
     }
 }
@@ -2341,9 +2353,9 @@ void OutputCommand()
         }
     }
     while (ch != 'S' && ch != 'F' && ch != ' ');
-    if (charoOutputStream.is_open())
+    if (true/*charoOutputStream.is_open()*/)
     {
-        charoOutputStream.close();
+        //charoOutputStream.close();
     }
     if (ch == 'S')
     {
@@ -2355,8 +2367,8 @@ void OutputCommand()
         cout << "Enter output data file name: ";
         cin.getline(cOutFileName, FILE_NAME_LENGTH);
         cOutFileName[cin.gcount() - 1] = '\0';
-        charoOutputStream.open(cOutFileName);
-        if (charoOutputStream.is_open())
+        //charoOutputStream.open(cOutFileName);
+        if (/*charoOutputStream.is_open()*/true)
         {
             bScreenOutput = false;
             cout << "Output data file is " << cOutFileName << endl;
@@ -2398,15 +2410,15 @@ void MainPrompt()
         }
     }
     while (ch != 'Q');
-    if (charoOutputStream.is_open())
+    if (true/*charoOutputStream.is_open()*/)
     {
-        charoOutputStream.close ();
+        //charoOutputStream.close ();
     }
 }
 
 int main (int argc, char *argv[])
 {
-    bool bError;
+    /*bool bError;
    
     if (argc == 2)
     {
@@ -2442,5 +2454,41 @@ int main (int argc, char *argv[])
     {
         MainPrompt();
         return 0;
-    }
+    }*/
+}
+
+std::string execute_code(std::string code, std::string input) {
+    bool bError;
+
+    Initialize (bError);
+    InstallRom (bError);
+
+    bKeyboardInput = false;
+    bScreenOutput = false;
+
+    printf("Loading code ...\n");
+    chariInputStream.str(code);
+    
+    bMachineReset = true;
+    bBufferIsEmpty = true;
+    bLoading = true;
+    sR_StackPointer.iHigh = iMemory[SYSTEM_SP];
+    sR_StackPointer.iLow = iMemory[SYSTEM_SP + 1];
+    sR_ProgramCounter.iHigh = iMemory[LOADER_PC];
+    sR_ProgramCounter.iLow = iMemory[LOADER_PC + 1];
+    StartExecution ();
+    bLoading = false;
+
+    charoOutputStream.str("");
+    chariInputStream.str(input);
+
+    printf("Executing ...\n");
+    ExecuteCommand();
+    printf("Output : %s\n", charoOutputStream.str().c_str());
+
+    return charoOutputStream.str();
+}
+
+EMSCRIPTEN_BINDINGS(my_module) {
+    emscripten::function("execute", &execute_code);
 }
