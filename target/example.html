@@ -851,7 +851,7 @@ function createExportWrapper(name, nargs) {
 // include: runtime_exceptions.js
 // end include: runtime_exceptions.js
 function findWasmBinary() {
-    var f = 'pep8.wasm';
+    var f = 'data:application/octet-stream;base64,' + PEP8_WASM_BLOB;
     if (!isDataURI(f)) {
       return locateFile(f);
     }
