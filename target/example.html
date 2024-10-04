@@ -6189,10 +6189,10 @@ run();
             codeResult += "<h2>Résultats</h2>"
             codeResult += "<table class=\"table\">";
             codeResult += "<tr><td>Valeur d'entrée</td><td>Sortie de votre programme</td><td>Sortie attendu</td><td>Réussit ?</td></tr>"
-
+            code = code.replace(/\r\n/g, "\n");
 
             for (var i=0; i<__jeux_validation.length; i++) {
-                var out = Module.execute(code, __jeux_validation[i]['in']);
+                var out = Module.execute(code + "\n", __jeux_validation[i]['in']);
                 var passed = out.trim() == __jeux_validation[i]['out'].trim();
 
                 codeResult += "<tr>";
