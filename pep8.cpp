@@ -107,6 +107,9 @@ using namespace std;
 #define EXTERN
 #endif
 
+// Fail-safe for infinite loop execution so that it stops eventually
+#define MAX_INSTRUCTION_EXECUTION 1000000
+
 const int MEMORY_SIZE        = 65536;
 const int TOP_OF_MEMORY      = 65535;
 const int USER_SP            = 65528; //User stack pointer vector.
@@ -1978,6 +1981,7 @@ void Execute (bool& bHalt)
 void StartExecution ()
 {
     bool Halt;
+    int iInstructionCount = 0;
     sRegisterType TraceAddr;
     int iLineCount;
     char cResponse[LINE_LENGTH];
@@ -2012,8 +2016,16 @@ void StartExecution ()
             {
                 Trace (TraceAddr, iLineCount, Halt);
             }
+
+            // Prevent infinite-loop from never ending.
+            iInstructionCount++;
+            if (iInstructionCount >= MAX_INSTRUCTION_EXECUTION) {
+                charoOutputStream << "Erreur : Le programme ne s'est pas terminé après 1,000,000 instructions.\n";
+                Halt = true;
+            }
         }
         while (!Halt);
+
         if (eTraceMode != eT_TR_OFF)
         {
             PrintLine (cout);
